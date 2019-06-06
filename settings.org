@@ -16,7 +16,6 @@
 #+BEGIN_SRC emacs-lisp
 ;; user env
 (setq user-full-name "Xinquan Zhu")
-(setq user-mail-address "xinquanzhu@gmail.com")
 (setenv "PATH" (concat (getenv "PATH") ":/usr/local/bin"))
 (setq exec-path (append exec-path '("/usr/local/bin")))
 ; add python bin
