@@ -1,608 +1,600 @@
+* Notes
+Your =init.el= file should look like this combined with this file =settings.org=
 
-* System alias
-#+BEGIN_SRC emacs-lisp
-(defvar system-type-as-string (prin1-to-string system-type))
-(defvar on_windows_nt (string-match "windows-nt" system-type-as-string))
-(defvar on_darwin     (string-match "darwin" system-type-as-string))
-(defvar on_linux  (string-match "linux" system-type-as-string))
-(defvar on_cygwin     (string-match "cygwin" system-type-as-string))
-(defvar on_solaris    (string-match "usg-unix-v" system-type-as-string))
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;(setq debug-on-error t)
+#+BEGIN_SRC 
+  (package-initialize)
+  (require 'org)
+  (org-babel-load-file
+  (expand-file-name "settings.org"
+                   user-emacs-directory))
 #+END_SRC
 
+=C-h f= tells you the elisp function or macro do e.g. =C-h f eval-when-compile= 
+
+Use below lisp function to turn on debugging
+(setq debug-on-error t)
+
 * Sane defaults
+=setq= takes effect in the local buffer while setq-default affects all buffers.
+
+Edit local file as root in =TRAMP=
+=C-x C-f /su::/etc/hosts=
+=C-x C-f /sudo::/etc/hosts=
+                                          
+#+BEGIN_SRC emacs-lisp
+  (setq user-full-name "Xinquan Zhu")
+  (setenv "PATH" (concat (getenv "PATH") ":/usr/local/bin"))
+  (setq exec-path (append exec-path '("/usr/local/bin")))
+
+                                          ; add python bin
+  (setenv "PATH" (concat (concat (concat (getenv "PATH")) ":") (concat (getenv "HOME") "/.local/bin/")))
+  (setq exec-path (append exec-path '((concat (getenv "HOME") "/.local/bin/"))))
+                                          ;add ruby path
+  (setenv "PATH" (concat (getenv "PATH") "/usr/local/opt/ruby/bin"))
+  (setq exec-path (append exec-path '("/usr/local/opt/ruby/bin")))
+
+  (define-coding-system-alias 'UTF-8 'utf-8)
+  (global-whitespace-mode 1)
+  (setq auto-revert-interval 1            ; Refresh buffers fast
+        echo-keystrokes 0.1               ; Show keystrokes asap
+        inhibit-startup-message t         ; No splash screen please
+        initial-scratch-message nil       ; Clean scratch buffer
+        recentf-max-saved-items 100       ; Show more recent files
+        ring-bell-function 'ignore        ; Quiet
+        scroll-step 1 ; Line-by-Line Scrolling
+        sentence-end-double-space nil    ; No double space
+        auto-save-default nil ;disable auto save
+        column-number-mode t ;enable column number display
+        backup-inhibited t ;disable backup
+        select-enable-clipboard t
+        doc-view-continuous t
+        package-enable-at-startup nil
+        ediff-window-setup-function 'ediff-setup-windows-plain
+        ediff-split-window-function 'split-window-horizontally
+        tramp-default-method "ssh"  ;;TRAMP mode
+        default-major-mode 'text-mode
+        auto-fill-mode 1)
+  (setq whitespace-style '(face tabs tab-mark spaces space-mark))
+  (setq whitespace-display-mappings
+        '((space-mark ?\u3000 [?\u25a1])
+          (tab-mark ?\t [?\xBB ?\t] [?\\ ?\t])))
+  (defvar my/blue-color "#8cb3f2")
+  (set-face-attribute 'whitespace-trailing nil
+                      :background nil
+                      :foreground "DeepPink"
+                      :underline t)
+  (set-face-attribute 'whitespace-tab nil
+                      :background nil
+                      :foreground my/blue-color
+                      :underline t)
+
+                                          ;(setq-default indent-tabs-mode nil) ; stop adding tab
+
+  ;; Show system name and full file path in emacs frame title
+  (setq frame-title-format
+        (list (format "%s %%S: %%j " (system-name))
+              '(buffer-file-name "%f" (dired-directory dired-directory "%b"))))
+  (tool-bar-mode -1)
+  (toggle-frame-maximized)
+  (fset 'yes-or-no-p 'y-or-n-p)
+
+  (setq-default fill-column 80)
+  (setq-default tab-width 4)
+  (setq-default show-trailing-whitespace t)
+  (setq-default indicate-empty-lines t)
+  (setq-default ispell-program-name "aspell")
+
+  (add-hook 'before-save-hook 'delete-trailing-whitespace)
+  (add-hook 'text-mode-hook '(lambda () (visual-line-mode t) (flyspell-mode 1)))
+  
+  ;;disable spell checker when editing logs
+  (dolist (hook '(change-log-mode-hook log-edit-mode-hook))
+    (add-hook hook (lambda () (flyspell-mode -1))))
+
+  (show-paren-mode t); Matches parentheses and such in every mode
+  (winner-mode t) ; keep tracking the window arrangement, using C-c <left> <right>
+  (add-hook 'csv-mode-hook (lambda()
+                             (standard-display-ascii ?\t "^I")
+                             (csv-align-fields nil (buffer-end -1) (buffer-end +1))
+                             ))
+  (defalias 'perl-mode 'cperl-mode)
+#+END_SRC
+
+* Key-bindings
+
+Some useful commands 
+
+M-c capitalize-word
+C-j newline and indent
+
+#+BEGIN_SRC  emacs-lisp
+  (global-set-key (kbd "M-!") 'async-shell-command)
+  (global-set-key (kbd "M-&") 'shell-command)
+  (global-set-key (kbd "M-[") 'move-line-up)
+  (global-set-key (kbd "M-]") 'move-line-down)
+  (global-set-key "\C-c\C-u" 'uncomment-region)
+  (global-set-key "\C-c\C-c" 'comment-region)
+  (global-set-key (kbd "\C-o") 'other-window)
+  (global-set-key (kbd "\C-c <down>") 'enlarge-window)
+  (global-set-key (kbd "\C-c <up>") 'shrink-window)
+  (global-set-key (kbd "RET") 'newline-and-indent)
+  (global-set-key (kbd "C-x f") 'find-name-dired)
+
+#+END_SRC
+
+* My Interactive functions
 
 #+BEGIN_SRC emacs-lisp
-;; user env
-(setq user-full-name "Xinquan Zhu")
-(setenv "PATH" (concat (getenv "PATH") ":/usr/local/bin"))
-(setq exec-path (append exec-path '("/usr/local/bin")))
-; add python bin
-(setenv "PATH" (concat (concat (concat (getenv "PATH")) ":") (concat (getenv "HOME") "/.local/bin/")))
-(setq exec-path (append exec-path '((concat (getenv "HOME") "/.local/bin/"))))
-                                        ;add ruby path
-(setenv "PATH" (concat (getenv "PATH") "/usr/local/opt/ruby/bin"))
-(setq exec-path (append exec-path '("/usr/local/opt/ruby/bin")))
+  (defun today ()
+    (interactive)     
+    (insert (format-time-string "%A, %B %e, %Y"))
+    (newline)
+    (newline))
+  (define-key ctl-x-map "t" 'today)
 
-(define-coding-system-alias 'UTF-8 'utf-8)
+  (defun replace-camel() (interactive) (replace-regexp "\\([A-Z]\\)" "_\\1" nil (region-beginning) (region-end))
+         (downcase-region (region-beginning) (region-end)))
 
+  ;;; Stefan Monnier <foo at acm.org>. It is the opposite of fill-paragraph
+  (defun unfill-paragraph (&optional region)
+    "Takes a multi-line paragraph and makes it into a single line of text."
+    (interactive (progn (barf-if-buffer-read-only) '(t)))
+    (let ((fill-column (point-max)))
+      (fill-paragraph nil region)))
 
-;By default, Emacs thinks a sentence is a full-stop followed by 2 spaces. Let’s make it full-stop and 1 space.
-(setq sentence-end-double-space nil)
+                                          ;duplicate a line
+  (global-set-key (kbd "M-p") "\C-a\C- \C-n\M-w\C-y")
+  (global-set-key (kbd "M-P") "\C-a\C- \C-n\M-w")
 
-;; Show system name and full file path in emacs frame title
-(setq frame-title-format
-      (list (format "%s %%S: %%j " (system-name))
-            '(buffer-file-name "%f" (dired-directory dired-directory "%b"))))
-(tool-bar-mode -1)
-(toggle-frame-maximized)
-(fset 'yes-or-no-p 'y-or-n-p)
+  (defun move-line-up () (interactive) (transpose-lines 1)  (previous-line 2))
+  (defun move-line-down () (interactive) (next-line 1) (transpose-lines 1) (previous-line 1))
 
-(setq backup-inhibited t) ;disable backup
-(setq auto-save-default nil) ;disable auto save
-(setq column-number-mode t) ;enable column number display
+#+END_SRC
 
-;(setq-default show-trailing-whitespace t)
-;(set-face-background 'trailing-whitespace "blue")
-;(add-hook 'before-save-hook 'delete-trailing-whitespace)
+* Packages
+#+BEGIN_SRC emacs-lisp
+  (add-to-list 'package-archives
+               '("melpa-stable" . "https://stable.melpa.org/packages/"))
+  (add-to-list 'package-archives
+               '("melpa" . "https://melpa.org/packages/"))
+  ;; Bootstrap use-package
+  (unless (package-installed-p 'use-package)
+    (package-refresh-contents)
+    (package-install 'use-package))
 
-(show-paren-mode t); Matches parentheses and such in every mode
-; (global-visual-line-mode 1); Proper line wrapping
-; (global-hl-line-mode 1) ; highlight current line
-(setq scroll-step 1) ; Line-by-Line Scrolling
+  (eval-when-compile
+    (require 'use-package))
 
-(setq-default indicate-empty-lines t)
-; turn off splash screen message
-(setq inhibit-splash-screen t
-      initial-scratch-message nil)
-; X11 Copy & Paste to/from Emacs:
-(setq select-enable-clipboard t)
-(setq doc-view-continuous t)
+  (use-package diminish :ensure t)
+  (diminish 'abbrev-mode "Abv")
 
-;;;; ediff
-(setq ediff-window-setup-function 'ediff-setup-windows-plain
-      ediff-split-window-function 'split-window-horizontally)
+  (use-package ace-window :ensure t)
+  (use-package ztree)
+  (use-package undo-tree :diminish undo-tree-mode :init (global-undo-tree-mode))
+  (use-package recentf  :init (setq recentf-max-saved-items 2000 recentf-max-menu-items 2000))
+  (use-package flycheck :diminish flycheck-mode :ensure t
+    :config
+    (setq global-flycheck-mode t)
+    (setq flycheck-shellcheck-follow-sources nil))
 
-; keep tracking the window arrangement, using C-c <left> <right>
-(winner-mode t)
-; (electric-pair-mode 1) don't use it for now as it always turns on pairing
-(add-hook 'csv-mode-hook (lambda()
-                           (standard-display-ascii ?\t "^I")
-                           (csv-align-fields nil (buffer-end -1) (buffer-end +1))
-                           ))
+  (add-hook 'after-init-hook #'global-flycheck-mode)
 
-;  "Insert string for today's date nicely formatted in American style,
-; e.g. Sunday, September 17, 2000."
-(defun today ()
-  (interactive)                 ; permit invocation in minibuffer
-  (insert (format-time-string "%A, %B %e, %Y"))
-  (newline)
-  (newline))
-(define-key ctl-x-map "t" 'today)
+  (use-package avy :bind ("C-:" . avy-goto-char)) ;; Jump to a word starting with a given char.
+  (use-package auto-save-buffers-enhanced :init (setq auto-save-buffers-enhanced-interval 2)
+    (auto-save-buffers-enhanced t))
+  (use-package multiple-cursors :bind ( "C->" . mc/mark-next-like-this)
+    ( "C-<" . mc/mark-previous-like-this)( "C-S-c C-S-c" . mc/edit-lines))
+  (use-package yasnippet :init (yas-global-mode t)
+    :config (add-hook 'term-mode-hook
+                      (lambda()(setq yas-dont-activate t)(setq yas-snippet-dirs '("~/emacs.d/snippets")))))
 
-(defun replace-camel() (interactive) (replace-regexp "\\([A-Z]\\)" "_\\1" nil (region-beginning) (region-end))
-       (downcase-region (region-beginning) (region-end)))
-
-;;; Stefan Monnier <foo at acm.org>. It is the opposite of fill-paragraph
-(defun unfill-paragraph (&optional region)
-  "Takes a multi-line paragraph and makes it into a single line of text."
-  (interactive (progn (barf-if-buffer-read-only) '(t)))
-  (let ((fill-column (point-max)))
-	(fill-paragraph nil region)))
-
-;duplicate a line
-(global-set-key (kbd "M-p") "\C-a\C- \C-n\M-w\C-y")
-(global-set-key (kbd "M-P") "\C-a\C- \C-n\M-w")
-
-(global-set-key (kbd "M-!") 'async-shell-command)
-(global-set-key (kbd "M-&") 'shell-command)
+  (use-package google-translate :init (lambda()(require 'google-translate-default-ui)
+                                        (custom-set-variables
+                                         '(google-translate-default-source-language "en")
+                                         '(google-translate-default-target-language "zh-CN")))
+    :bind ("\C-ct" . google-translate-at-point))
+  (use-package validate :ensure t)
+  (use-package helm :ensure t)
+  (use-package iedit-mode :init (lambda () (call-interactively 'iedit-restrict-function)) :bind ("\C-ce" . iedit-mode))
+  (use-package expand-region :init (setq expand-region-fast-keys-enabled nil) (setq er--show-expansion-message t)
+    :bind ( "C-=" . er/expand-region))
 
 
-(defun move-line-up () (interactive) (transpose-lines 1)  (previous-line 2))
-(defun move-line-down () (interactive) (next-line 1) (transpose-lines 1) (previous-line 1))
+#+END_SRC
 
-(global-set-key (kbd "M-[") 'move-line-up)
-(global-set-key (kbd "M-]") 'move-line-down)
+* Helm, Theme and powerline
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; Package List
-(package-initialize)
-(require 'package)
-(setq package-enable-at-startup nil)
-(add-to-list 'package-archives
-             '("melpa-stable" . "https://stable.melpa.org/packages/"))
-(add-to-list 'package-archives
-             '("melpa" . "https://melpa.org/packages/"))
+=helm-locate= is very helpful to find files
 
-;; Bootstrap use-package
-(unless (package-installed-p 'use-package)
-  (package-refresh-contents)
-  (package-install 'use-package))
+#+BEGIN_SRC emacs-lisp
+  (setq custom-safe-themes t)
+  (load-theme 'monokai)
+  (use-package spaceline-config) (spaceline-emacs-theme)
 
-(eval-when-compile
-  (require 'use-package))
+  ;;; helm
+  (global-set-key (kbd "M-x") 'helm-M-x)
+  (global-set-key (kbd "C-x C-f") 'helm-find-files)
+  (global-set-key (kbd "C-x C-r") 'helm-recentf)
+  (global-set-key (kbd "C-c k") 'helm-show-kill-ring)
+  (global-set-key (kbd "C-x C-b") 'helm-buffers-list)
+  (global-set-key (kbd "C-x b")   'helm-mini)
+#+END_SRC
 
-(use-package diminish :ensure t)
-(diminish 'abbrev-mode "Abv")
+* Git/Magit
+#+BEGIN_SRC emacs-lisp
+  (use-package magit :init (lambda ()
+                             (add-to-list 'magit-no-confirm 'stage-all-changes)
+                             (add-to-list 'magit-no-confirm 'safe-with-wip)
+                             (setq magit-push-always-verify nil)) :bind ( "C-x g" . magit-status)
+                             :commands (magit-status magit-log-all))
+#+END_SRC
+* ORG
+#+BEGIN_SRC emacs-lisp
+  (when  (require 'org-bullets nil 'noerror)
+    (setq org-bullets-face-name (quote org-bullet-face))
+    (add-hook 'org-mode-hook (lambda () (org-bullets-mode 1)))
+    (setq org-src-fontify-natively t)
+    (setq org-bullets-bullet-list '("✤" "◉" "***" "****" "▹" "†" "✠" "✚" "✜" "✛" "✣" "✥")))
 
-; much powerful undo system
-(use-package undo-tree :diminish undo-tree-mode :init (global-undo-tree-mode))
-; The :ensure keyword causes the package(s) to be installed automatically
-(use-package recentf  :init (setq recentf-max-saved-items 2000 recentf-max-menu-items 2000))
-(use-package flycheck :diminish flycheck-mode :ensure t
-  :config
-  (setq global-flycheck-mode t)
-  (setq flycheck-shellcheck-follow-sources nil))
+  (eval-after-load 'org
+    (lambda()
+      (org-babel-do-load-languages
+       'org-babel-load-languages
+       '((emacs-lisp . t)(java .t)
+         (shell . t)(ruby . t)(C . t)(sql .t)(python .t)(http . t)
+         ))
+      (setq org-babel-C-compiler "clang")
+      (setq org-babel-C++-compiler "clang++")
 
-(add-hook 'after-init-hook #'global-flycheck-mode)
+      (setq org-export-babel-evaluate nil)
+      (setq org-startup-indented t)
+      ;; increase imenu depth to include third level headings
+      (setq org-imenu-depth 3)
+      ;; Update images from babel code blocks automatically
+      (add-hook 'org-babel-after-execute-hook 'org-display-inline-images)
+      (setq org-src-tab-acts-natively t)
+      (setq org-confirm-babel-evaluate nil)))
+#+END_SRC
 
-(use-package avy :bind ("C-:" . avy-goto-char)) ;; Jump to a word starting with a given char.
-(use-package auto-save-buffers-enhanced :init (setq auto-save-buffers-enhanced-interval 2)
-  (auto-save-buffers-enhanced t))
-(use-package multiple-cursors :bind ( "C->" . mc/mark-next-like-this)
-  ( "C-<" . mc/mark-previous-like-this)( "C-S-c C-S-c" . mc/edit-lines))
-(use-package yasnippet :init (yas-global-mode t)
-  :config (add-hook 'term-mode-hook
-                    (lambda()(setq yas-dont-activate t)(setq yas-snippet-dirs '("~/emacs.d/snippets")))))
-
-(use-package google-translate :init (lambda()(require 'google-translate-default-ui)
-  (custom-set-variables
-   '(google-translate-default-source-language "en")
-   '(google-translate-default-target-language "zh-CN")))
-  :bind ("\C-ct" . google-translate-at-point))
-
-;;;; powerline spaceline & theme
-(setq custom-safe-themes t)
-(load-theme 'monokai)
-(use-package spaceline-config) (spaceline-emacs-theme)
-(use-package iedit-mode :init (lambda () (call-interactively 'iedit-restrict-function)) :bind ("\C-ce" . iedit-mode))
-(use-package expand-region :init (setq expand-region-fast-keys-enabled nil) (setq er--show-expansion-message t)
-  :bind ( "C-=" . er/expand-region))
-;; ivy
-(use-package ivy  :ensure t  :diminish ivy-mode  :config
-  (ivy-mode   (bind-key "C-c C-r" 'ivy-resume)))
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(require 'whitespace) ; tab and whitespace needs to be set after monokai's face
-(setq whitespace-style '(face tabs tab-mark spaces space-mark))
-(setq whitespace-display-mappings
-      '((space-mark ?\u3000 [?\u25a1])
-        (tab-mark ?\t [?\xBB ?\t] [?\\ ?\t])))
-(global-whitespace-mode 1)
-
-(defvar my/blue-color "#8cb3f2")
-(set-face-attribute 'whitespace-trailing nil
-                    :background nil
-                    :foreground "DeepPink"
-                    :underline t)
-(set-face-attribute 'whitespace-tab nil
-                    :background nil
-                    :foreground my/blue-color
-                    :underline t)
-
-;(setq-default indent-tabs-mode nil) ; stop adding tab
-
-;;; helm
-(global-set-key (kbd "M-x") 'helm-M-x)
-(global-set-key (kbd "C-x C-f") 'helm-find-files)
-(global-set-key (kbd "C-x f") 'find-name-dired)
-(global-set-key (kbd "C-x C-r") 'helm-recentf)
-(global-set-key (kbd "C-c k") 'helm-show-kill-ring)
-(global-set-key (kbd "C-x C-b") 'helm-buffers-list)
-(global-set-key (kbd "C-x b")   'helm-mini)
-(global-set-key (kbd "C-x p")   'helm-projects-find-files)
-
-;;; Magit
-(use-package magit :init (lambda ()
-  (add-to-list 'magit-no-confirm 'stage-all-changes)
-  (add-to-list 'magit-no-confirm 'safe-with-wip)
-  (setq magit-push-always-verify nil)) :bind ( "C-x g" . magit-status)
-  :commands (magit-status magit-log-all))
-
-; ORG mode
-; use org-bullets-mode for utf8 symbols as org bullets
-(when  (require 'org-bullets nil 'noerror)
-  (setq org-bullets-face-name (quote org-bullet-face))
-  (add-hook 'org-mode-hook (lambda () (org-bullets-mode 1)))
-  (setq org-src-fontify-natively t)
-  (setq org-bullets-bullet-list '("✤" "◉" "***" "****" "▹" "†" "✠" "✚" "✜" "✛" "✣" "✥")))
-
-(eval-after-load 'org
-  (lambda()
-    (org-babel-do-load-languages
-     'org-babel-load-languages
-     '((emacs-lisp . t)(java .t)
-       (shell . t)(ruby . t)(C . t)(sql .t)(python .t)(http . t)
-       ))
-    (setq org-babel-C-compiler "clang")
-    (setq org-babel-C++-compiler "clang++")
-
-    (setq org-export-babel-evaluate nil)
-    (setq org-startup-indented t)
-    ;; increase imenu depth to include third level headings
-    (setq org-imenu-depth 3)
-    ;; Update images from babel code blocks automatically
-    (add-hook 'org-babel-after-execute-hook 'org-display-inline-images)
-    (setq org-src-tab-acts-natively t)
-    (setq org-confirm-babel-evaluate nil)))
-
-;set commen region
-(global-set-key "\C-c\C-u" 'uncomment-region)
-(global-set-key "\C-c\C-c" 'comment-region)
-(global-set-key (kbd "\C-o") 'other-window)
-(global-set-key (kbd "\C-c <down>") 'enlarge-window)
-(global-set-key (kbd "\C-c <up>") 'shrink-window)
-(global-set-key (kbd "RET") 'newline-and-indent)
-
-;defualt text mode
-(setq default-major-mode 'text-mode)
-(setq-default fill-column 80)
-(setq auto-fill-mode 1)
-
-;aspell need to be installed in $PATH
-; in most Unix systems, aspell is installed /usr/bin/ ; in Mac OS. you need to install it by yourself
-(setq-default ispell-program-name "aspell")
-(add-hook 'text-mode-hook '(lambda () (visual-line-mode t) (flyspell-mode 1)))
-
-;;disable spell checker when editing logs
-(dolist (hook '(change-log-mode-hook log-edit-mode-hook))
-  (add-hook hook (lambda () (flyspell-mode -1))))
-
-;;tabs and indent
-(setq-default tab-width 4)
-
-;; Setup Emacs to run zsh as its primary shell.
-(setq shell-file-name "bash")
-(setq shell-command-switch "-c")
-(setq explicit-shell-file-name shell-file-name)
-(setenv "SHELL" shell-file-name)
-(setq explicit-sh-args '("-login" "-i"))
-
-;;; cperl-mode is preferred to perl-mode
-(defalias 'perl-mode 'cperl-mode)
-
-(require 'shell)
-(require 'term)
-(defun term-switch-to-shell-mode ()
-  (interactive)
-  (if (equal major-mode 'term-mode)
+* Shell and Terminal  
+#+BEGIN_SRC emacs-lisp
+ (add-hook 'shell-mode-hook (lambda () (setq show-trailing-whitespace nil)))
+ (add-hook 'term-mode-hook (lambda() (setq show-trailing-whitespace nil)))
+  ;; Setup Emacs to run zsh/bash as its primary shell.
+  (setq shell-file-name "bash")
+  (setq shell-command-switch "-c")
+  (setq explicit-shell-file-name shell-file-name)
+  (setenv "SHELL" shell-file-name)
+  (setq explicit-sh-args '("-login" "-i"))
+  (require 'term)
+  (defun term-switch-to-shell-mode ()
+    (interactive)
+    (if (equal major-mode 'term-mode)
+        (progn
+          (shell-mode)
+          (set-process-filter  (get-buffer-process (current-buffer)) 'comint-output-filter )
+          (local-set-key (kbd "C-j") 'term-switch-to-shell-mode)
+          (compilation-shell-minor-mode 1)
+          (comint-send-input)
+          )
       (progn
-        (shell-mode)
-        (set-process-filter  (get-buffer-process (current-buffer)) 'comint-output-filter )
-        (local-set-key (kbd "C-j") 'term-switch-to-shell-mode)
-        (compilation-shell-minor-mode 1)
-        (comint-send-input)
-        )
-    (progn
-      (compilation-shell-minor-mode -1)
-      (font-lock-mode -1)
-      (set-process-filter  (get-buffer-process (current-buffer)) 'term-emulate-terminal)
-      (term-mode)
-      (term-char-mode)
-      (term-send-raw-string (kbd "C-l"))
-      )))
-(define-key term-raw-map (kbd "C-j") 'term-switch-to-shell-mode)
+        (compilation-shell-minor-mode -1)
+        (font-lock-mode -1)
+        (set-process-filter  (get-buffer-process (current-buffer)) 'term-emulate-terminal)
+        (term-mode)
+        (term-char-mode)
+        (term-send-raw-string (kbd "C-l"))
+        )))
+  (define-key term-raw-map (kbd "C-j") 'term-switch-to-shell-mode)
+#+END_SRC
+* C++ development
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; c++ development
-(use-package helm-gtags
-  :ensure t
-  :init
-     (add-hook 'c-mode-hook 'helm-gtags-mode)
-     (add-hook 'c++-mode-hook 'helm-gtags-mode)
-     (add-hook 'ruby-mode-hook 'helm-gtags-mode)
-     (add-hook 'python-mode-hook 'helm-gtags-mode)
-     (add-hook 'php-mode-hook 'helm-gtags-mode)
-     (add-hook 'web-mode-hook 'helm-gtags-mode)
-  :commands (helm-gtags-mode helm-gtags-dwim)
-  :diminish helm-gtags-mode
-  :config
-  (setq helm-gtags-auto-update t)
-  (bind-keys :map helm-gtags-mode-map
-             ( "M-t" . helm-gtags-find-tag)
-             ( "M-s" . helm-gtags-show-stack)
-             ( "M-." . helm-gtags-dwim)
-             ( "M-r" . helm-gtags-find-rtag)
-             ( "M-g M-p" . helm-gtags-parse-file)
-             ( "C-c <" . helm-gtags-previous-history)
-             ( "C-c >" . helm-gtags-next-history)
-             ( "M-," . helm-gtags-pop-stack)))
+Try the =moo-implement= to auto-complete the c++ functions. =moo-jump-directory= is also very helpful to navigate
+the codes
 
-(use-package validate :ensure t)
-(use-package company :defer t :diminish company-mode
-  :preface
-  ;; enable yasnippet everywhere
-  (defvar company-mode/enable-yas t
-    "Enable yasnippet for all backends.")
-  (defun company-mode/backend-with-yas (backend)
-    (if (or
-         (not company-mode/enable-yas)
-         (and (listp backend) (member 'company-yasnippet backend)))
-        backend
-      (append (if (consp backend) backend (list backend))
-              '(:with company-yasnippet))))
+`C-c TAB` will past the helm completion result
 
-  :init (global-company-mode t)
-  :config
-  ;; no delay no autocomplete
-  (validate-setq
-   company-idle-delay 0.08
-   company-minimum-prefix-length 2
-   company-tooltip-limit 20)
-  ;; remove unused backends
-  (validate-setq company-backends (delete 'company-semantic company-backends))
-  (validate-setq company-backends (delete 'company-capf company-backends))
-  (validate-setq company-backends (delete 'company-eclim company-backends))
-  (validate-setq company-backends (delete 'company-etags company-backends))
-  (validate-setq company-backends (delete 'company-xcode company-backends))
-  (validate-setq company-backends (delete 'company-clang company-backends))
-  (validate-setq company-backends (delete 'company-bbdb company-backends))
-  (validate-setq company-backends (delete 'company-oddmuse company-backends))
-  '(add-to-list
-    'company-backends 'company-rtags)
-  (validate-setq company-backends
-                 (mapcar #'company-mode/backend-with-yas company-backends)))
+#+BEGIN_SRC emacs-lisp
+  (use-package helm-gtags
+    :ensure t
+    :init
+    (add-hook 'c-mode-hook 'helm-gtags-mode)
+    (add-hook 'c++-mode-hook 'helm-gtags-mode)
+    (add-hook 'ruby-mode-hook 'helm-gtags-mode)
+    (add-hook 'python-mode-hook 'helm-gtags-mode)
+    (add-hook 'php-mode-hook 'helm-gtags-mode)
+    (add-hook 'web-mode-hook 'helm-gtags-mode)
+    :commands (helm-gtags-mode helm-gtags-dwim)
+    :diminish helm-gtags-mode
+    :config
+    (setq helm-gtags-auto-update t)
+    (bind-keys :map helm-gtags-mode-map
+               ( "M-t" . helm-gtags-find-tag)
+               ( "M-s" . helm-gtags-show-stack)
+               ( "M-." . helm-gtags-dwim)
+               ( "M-r" . helm-gtags-find-rtag)
+               ( "M-g M-p" . helm-gtags-parse-file)
+               ( "C-c <" . helm-gtags-previous-history)
+               ( "C-c >" . helm-gtags-next-history)
+               ( "M-," . helm-gtags-pop-stack)))
 
-;  Sort company candidates by statistics
-(use-package company-statistics
-  :ensure nil
-  :config (company-statistics-mode))
+  (add-hook 'c-mode-common-hook 'flycheck-mode)
+  (add-hook 'c-mode-common-hook 'hs-minor-mode)
+  (add-hook 'c-mode-common-hook 'helm-gtags-mode)
 
-; c-mode-common-hook
-(add-hook 'c-mode-common-hook 'flycheck-mode)
-(add-hook 'c-mode-common-hook 'hs-minor-mode)
-(add-hook 'c-mode-common-hook 'helm-gtags-mode)
+  (use-package cff)
+  (add-hook 'c-mode-common-hook
+            (lambda() (global-set-key  (kbd "<f8>") 'cff-find-other-file)
+              (add-hook 'before-save-hook 'clang-format-buffer nil t)))
 
-(use-package cff)
-(add-hook 'c-mode-common-hook
-          (lambda() (global-set-key  (kbd "<f8>") 'cff-find-other-file)
-            (add-hook 'before-save-hook 'clang-format-buffer nil t)))
+  (add-to-list 'auto-mode-alist '("\\.h$" . c++-mode))
+  (add-to-list 'auto-mode-alist '("\\.ipp$" . c++-mode))
 
-(add-to-list 'auto-mode-alist '("\\.h$" . c++-mode))
-(add-to-list 'auto-mode-alist '("\\.ipp$" . c++-mode))
+  (defun bury-compile-buffer-if-successful (buffer string)
+    "Bury a compilation buffer if succeeded without warnings"
+    (if (and
+         (string-match "compilation" (buffer-name buffer))
+         (string-match "finished" string)
+         (not (with-current-buffer buffer
+                (search-forward "warning" nil t))))
+        (run-with-timer 1 nil (lambda (buf) (bury-buffer buf)
+                                (switch-to-prev-buffer (get-buffer-window
+                                                        buf) 'kill))
+                        buffer)))
 
-(defun bury-compile-buffer-if-successful (buffer string)
-  "Bury a compilation buffer if succeeded without warnings"
-  (if (and
-       (string-match "compilation" (buffer-name buffer))
-       (string-match "finished" string)
-       (not (with-current-buffer buffer
-              (search-forward "warning" nil t))))
-      (run-with-timer 1 nil (lambda (buf) (bury-buffer buf)
-                              (switch-to-prev-buffer (get-buffer-window
-                                                      buf) 'kill))
-                      buffer)))
+  (add-hook 'compilation-mode-hook
+            '(lambda()
+               (setq compilation-auto-jump-to-first-error t)
+               (setq compilation-scroll-output t
+                     compilation-window-height 15)
+               (define-key compilation-mode-map (kbd "n") 'compilation-next-error)
+               (define-key compilation-mode-map (kbd "p") 'compilation-previous-error)))
 
-(add-hook 'compilation-mode-hook
-          '(lambda()
-             (setq compilation-auto-jump-to-first-error t)
-             (setq compilation-scroll-output t
-                   compilation-window-height 15)
-             (define-key compilation-mode-map (kbd "n") 'compilation-next-error)
-             (define-key compilation-mode-map (kbd "p") 'compilation-previous-error)))
+  (eval-after-load "cc-mode"
+    '(progn
+       ;;compile
+       (global-set-key [f9] 'recompile)
+       (setq compilation-skip-threshold 2)
+       (setq compilation-ask-about-save nil)
+       (setq compilation-auto-jump-to-first-error 1)
+       (semantic-mode nil)
+       (setq c-default-style "linux"
+             c-basic-offset 4)
+       (c-set-offset 'innamespace 0)
 
-(eval-after-load "cc-mode"
-  '(progn
-     ;;compile
-     (global-set-key [f9] 'recompile)
-     (setq compilation-skip-threshold 2)
-     (setq compilation-ask-about-save nil)
-     (setq compilation-auto-jump-to-first-error 1)
-     (semantic-mode nil)
-     (setq c-default-style "linux"
-           c-basic-offset 4)
-     (c-set-offset 'innamespace 0)
+       ;;function-args
+       (when  (require 'function-args nil 'noerror)
+         (fa-config-default)
+         (define-key c-mode-map  [(control tab)] 'moo-complete)
+         (define-key c++-mode-map  [(control tab)] 'moo-complete)
+         (define-key c-mode-map (kbd "M-o")  'fa-show)
+         (define-key c++-mode-map (kbd "M-o")  'fa-show))
 
-     ;;function-args
-     (when  (require 'function-args nil 'noerror)
-       (fa-config-default)
-       (define-key c-mode-map  [(control tab)] 'moo-complete)
-       (define-key c++-mode-map  [(control tab)] 'moo-complete)
-       (define-key c-mode-map (kbd "M-o")  'fa-show)
-       (define-key c++-mode-map (kbd "M-o")  'fa-show))
+       (add-hook 'compilation-finish-functions
+                 'bury-compile-buffer-if-successful)))
 
-     (add-hook 'compilation-finish-functions
-               'bury-compile-buffer-if-successful)))
+                                          ; Make compilation command per folder
+  (make-variable-buffer-local 'compile-command)
 
-; Make compilation command per folder
-(make-variable-buffer-local 'compile-command)
+                                          ; Modern cpp font
+  (use-package modern-cpp-font-lock
+    :ensure t
+    :config
+    (add-hook 'c++-mode-hook #'modern-c++-font-lock-mode))
 
-; Modern cpp font
-(use-package modern-cpp-font-lock
-  :ensure t
-  :config
-  (add-hook 'c++-mode-hook #'modern-c++-font-lock-mode))
-
-(use-package rtags
-  :config
-  :defer 2
-  :config
-  (add-hook 'c++-mode-hook
-            (lambda ()
-
-              (local-set-key (kbd "M-'") 'rtags-find-symbol-at-point)
-              (local-set-key (kbd "M-@") 'rtags-find-references)
-              (local-set-key (kbd "M-;") 'rtags-location-stack-back))))
-
-(if on_linux
-    (setq visible-bell 1)
-  (use-package cmake-ide
-    :after rtags
+  (use-package rtags
+    :config
     :defer 2
     :config
-    (cmake-ide-setup)
-    (bind-keys :map helm-gtags-mode-map
-               ( "f10" . cmake-ide-compile))
-    :init
-    ;; use .dir-locals.el to define a directory local variable and set cmake-ide-build-dir there
-    (setq cmake-ide-cmake-opts "-G Ninja -DCMAKE_BUILD_TYPE=Debug"))
+    (add-hook 'c++-mode-hook
+              (lambda ()
 
-  (use-package flycheck-rtags
-    :ensure t
-    :after flycheck rtags
+                (local-set-key (kbd "M-'") 'rtags-find-symbol-at-point)
+                (local-set-key (kbd "M-@") 'rtags-find-references)
+                (local-set-key (kbd "M-;") 'rtags-location-stack-back))))
+
+    (use-package flycheck-rtags
+      :ensure t
+      :after flycheck rtags
+      :config
+      (defun my-flycheck-rtags-setup ()
+        (flycheck-select-checker 'rtags)
+        (setq-local flycheck-highlighting-mode nil) ;; RTags creates more accurate overlays.
+        (setq-local flycheck-check-syntax-automatically nil))
+      (add-hook 'c-mode-common-hook #'my-flycheck-rtags-setup))
+
+  ;; gdb
+  (defadvice gdb-setup-windows (around setup-more-gdb-windows activate)
+    ad-do-it
+    (split-window-horizontally)
+    (other-window 1)
+    (gdb-set-window-buffer
+     (gdb-get-buffer-create 'gdb-some-buffer-type)))
+  (setq gud-tooltip-mode t)
+
+#+END_SRC
+
+* Company and completion
+
+#+BEGIN_SRC emacs-lisp
+(use-package company :defer t :diminish company-mode
+    :preface
+    ;; enable yasnippet everywhere
+    (defvar company-mode/enable-yas t
+      "Enable yasnippet for all backends.")
+    (defun company-mode/backend-with-yas (backend)
+      (if (or
+           (not company-mode/enable-yas)
+           (and (listp backend) (member 'company-yasnippet backend)))
+          backend
+        (append (if (consp backend) backend (list backend))
+                '(:with company-yasnippet))))
+
+    :init (global-company-mode t)
     :config
-    (defun my-flycheck-rtags-setup ()
-      (flycheck-select-checker 'rtags)
-      (setq-local flycheck-highlighting-mode nil) ;; RTags creates more accurate overlays.
-      (setq-local flycheck-check-syntax-automatically nil))
-    (add-hook 'c-mode-common-hook #'my-flycheck-rtags-setup)))
+    ;; no delay no autocomplete
+    (validate-setq
+     company-idle-delay 0.08
+     company-minimum-prefix-length 2
+     company-tooltip-limit 20)
+    ;; remove unused backends
+    (validate-setq company-backends (delete 'company-semantic company-backends))
+    (validate-setq company-backends (delete 'company-capf company-backends))
+    (validate-setq company-backends (delete 'company-eclim company-backends))
+    (validate-setq company-backends (delete 'company-etags company-backends))
+    (validate-setq company-backends (delete 'company-xcode company-backends))
+    (validate-setq company-backends (delete 'company-clang company-backends))
+    (validate-setq company-backends (delete 'company-bbdb company-backends))
+    (validate-setq company-backends (delete 'company-oddmuse company-backends))
+    '(add-to-list
+      'company-backends 'company-rtags)
+    (validate-setq company-backends
+                   (mapcar #'company-mode/backend-with-yas company-backends)))
+#+END_SRC
+* Others
 
-(use-package smartparens
-  :config
-  (progn
-    (require 'smartparens-config)
-    (smartparens-global-mode t)))
+Move forward across one balanced expression. (smartparens.el
+=sp-forward-sexp= vs =forward-sexp= Move forward across one balanced expression (sexp).
+C-M-f/ C-M-b 
 
-(use-package evil
-  :config
-  (evil-mode 0)
-  (dolist (mode '(ag-mode
-                  flycheck-error-list-mode
-                  git-rebase-mode))
-    (add-to-list 'evil-emacs-state-modes mode))
-; One wants to paste some previously copied; (from application other than Emacs)
-  (setq evil-mode-line-format nil
-		evil-visual-update-x-selection 'ignore
-        evil-insert-state-cursor '(bar "White")
-        evil-visual-state-cursor '(box "#F86155"))
+#+BEGIN_SRC emacs-lisp
+  (use-package smartparens
+    :config
+    (bind-key "C-M-f" 'sp-forward-sexp)
+    (progn
+      (require 'smartparens-config)
+      (smartparens-global-mode t)))
 
-  (evil-add-hjkl-bindings occur-mode-map 'emacs
-    (kbd "/")       'evil-search-forward
-    (kbd "n")       'evil-search-next
-    (kbd "N")       'evil-search-previous
-    (kbd "C-d")     'evil-scroll-down
-    (kbd "C-u")     'evil-scroll-up
-    (kbd "C-w C-w") 'other-window))
-;;;
+  (use-package evil
+    :config
+    (evil-mode 0)
+    (dolist (mode '(ag-mode
+                    flycheck-error-list-mode
+                    git-rebase-mode))
+      (add-to-list 'evil-emacs-state-modes mode))
+                                          ; One wants to paste some previously copied; (from application other than Emacs)
+    (setq evil-mode-line-format nil
+          evil-visual-update-x-selection 'ignore
+          evil-insert-state-cursor '(bar "White")
+          evil-visual-state-cursor '(box "#F86155"))
 
-;;TRAMP mode
-(setq tramp-default-method "ssh")
-                                        ; Edit local file as root
-                                        ;    C-x C-f /su::/etc/hosts
-                                        ;    C-x C-f /sudo::/etc/hosts
+    (evil-add-hjkl-bindings occur-mode-map 'emacs
+      (kbd "/")       'evil-search-forward
+      (kbd "n")       'evil-search-next
+      (kbd "N")       'evil-search-previous
+      (kbd "C-d")     'evil-scroll-down
+      (kbd "C-u")     'evil-scroll-up
+      (kbd "C-w C-w") 'other-window))
+     ;;;
 
-;; chome amotic editing
-(use-package atomic-chrome
-  :ensure t
-  :config (setq atomic-chrome-buffer-open-style 'window))
+  ;; chome amotic editing
+  (use-package atomic-chrome
+    :ensure t
+    :config (setq atomic-chrome-buffer-open-style 'window))
 
-;; ace-window
-(use-package ace-window :ensure t)
+     ;;; Weather
+  (use-package wttrin
+    :ensure t
+    :commands (wttrin)
+    :init
+    (setq wttrin-default-cities '("Tokyo"
+                                  "Shanghai")))
 
+  ;; python
+  (use-package elpy  :defer t
+    :commands (elpy-nable)
+    :init
+    (add-hook 'python-mode-hook #'elpy-enable)
+    :config
+    (progn
+      (setq elpy-rpc-python-command "python3")
+      (setq python-shell-interpreter "python3")
+      (setq python-shell-interpreter-args "-i")))
 
-;;; Weather
-(use-package wttrin
-  :ensure t
-  :commands (wttrin)
-  :init
-  (setq wttrin-default-cities '("Tokyo"
-                                "Shanghai")))
+  (eval-after-load "python-mode"
+    '(progn
+       (linum-mode 1)
+       (define-key python-mode-map (kbd "M-.") 'elpy-goto-definition)
+       (define-key python-mode-map (kbd "M-,") 'pop-tag-mark)
+       (define-key python-mode-map (kbd "M-'") 'python-nav-forward-sexp)))
 
-;; python
-(use-package elpy  :defer t
-  :commands (elpy-nable)
-  :init
-  (add-hook 'python-mode-hook #'elpy-enable)
-  :config
-  (progn
-    (setq elpy-rpc-python-command "python3")
-    (setq python-shell-interpreter "python3")
-    (setq python-shell-interpreter-args "-i")))
+                                          ; Javascript
+  (use-package js2-mode
+    :mode ("\\.js\\'". js2-mode)
+    :init
+    (add-hook 'js2-mode-hook #'js2-imenu-extras-mode)
+    )
+  (when  (require 'yasnippet nil 'noerror)
+    (add-hook 'web-mode-hook 'yas-minor-mode))
 
-;; (use-package py-autopep8
-;;   :ensure t
-;;   :init
-;;   (add-hook 'python-mode-hook 'py-autopep8-enable-on-save)
-;;   (add-hook 'elpy-mode-hook 'py-autopep8-enable-on-save))
+  (add-hook 'ruby-mode-hook #'aggressive-indent-mode)
+  (eval-after-load "ruby-mode"
+    '(progn
+       (define-key ruby-mode-map (kbd "M-'") 'sp-ruby-forward-sexp)))
+  (setq ruby-insert-encoding-magic-comment nil)
 
-(eval-after-load "python-mode"
-  '(progn
-     (linum-mode 1)
-     (define-key python-mode-map (kbd "M-.") 'elpy-goto-definition)
-     (define-key python-mode-map (kbd "M-,") 'pop-tag-mark)
-     (define-key python-mode-map (kbd "M-'") 'python-nav-forward-sexp)))
+  ;; autoinsert
+  (eval-after-load 'autoinsert
+    '(define-auto-insert '("\\.cpp\\'" . "C skeleton")
+       '(
+         "Short description: "
+         "/**\n * "
+         (file-name-nondirectory (buffer-file-name))
+         " -- " str \n
+         "*" \n
+         "* Written on " (format-time-string "%A, %e %B %Y.") \n
+         "* By Xinquan Zhu" \n
+         "*/" > \n \n
+         > _ \n
+         > \n)))
 
-; Javascript
-(use-package js2-mode
-  :mode ("\\.js\\'". js2-mode)
-  :init
-  (add-hook 'js2-mode-hook #'js2-imenu-extras-mode)
-  )
+  '(auto-insert-mode t)
 
-;; (use-package xref-js2                   ; Navigate JS with ag & js2-mode's AST
-;;   :after js2-mode
-;;   :init
-;;   (defun add-xref-js2-backend ()
-;;     (add-hook 'xref-backend-functions
-;;               #'xref-js2-xref-backend nil t))
+  ;; enable line mode for certain modes only
+  (add-hook 'c-mode-common-hook (lambda () (linum-mode 1)))
+  (add-hook 'ruby-mode-hook (lambda () (linum-mode 1)))
 
-;;   (add-hook 'js2-mode-hook #'add-xref-js2-backend))
+  ;;rust mode
+  (with-eval-after-load 'rust-mode
+    (add-hook 'flycheck-mode-hook #'flycheck-rust-setup))
 
-;; web development
-(add-to-list 'auto-mode-alist '("\\.ctp$" . web-mode))
-(when  (require 'yasnippet nil 'noerror)
-  (add-hook 'web-mode-hook 'yas-minor-mode))
+#+END_SRC
 
-                                        ;ruby
-;; (add-hook 'ruby-mode-hook 'robe-mode)
-;; (eval-after-load 'company
-;;   '(push 'company-robe company-backends))
-                                        ; M-x inf-ruby M-x robe-start
-(add-hook 'ruby-mode-hook #'aggressive-indent-mode)
-(eval-after-load "ruby-mode"
-  '(progn
-     (define-key ruby-mode-map (kbd "M-'") 'sp-ruby-forward-sexp)))
-(setq ruby-insert-encoding-magic-comment nil)
+* File extension and mode mapping 
+#+BEGIN_SRC emacs-lisp
+  ;; subtitles
+  (add-to-list 'auto-mode-alist '("\\.ctp$" . web-mode))
+  (add-to-list 'auto-mode-alist '("\\.srt$" . text-mode))
+#+END_SRC
 
-;; autoinsert
-(eval-after-load 'autoinsert
-  '(define-auto-insert '("\\.cpp\\'" . "C skeleton")
-     '(
-       "Short description: "
-       "/**\n * "
-       (file-name-nondirectory (buffer-file-name))
-       " -- " str \n
-       "*" \n
-       "* Written on " (format-time-string "%A, %e %B %Y.") \n
-       "* By Xinquan Zhu" \n
-       "*/" > \n \n
-       > _ \n
-       > \n)))
+* Mac OSX / Linux 
 
-'(auto-insert-mode t)
+#+BEGIN_SRC emacs-lisp
+  (defvar system-type-as-string (prin1-to-string system-type))
+  (defvar on_windows_nt (string-match "windows-nt" system-type-as-string))
+  (defvar on_darwin     (string-match "darwin" system-type-as-string))
+  (defvar on_linux  (string-match "linux" system-type-as-string))
+  (defvar on_cygwin     (string-match "cygwin" system-type-as-string))
+  (defvar on_solaris    (string-match "usg-unix-v" system-type-as-string))
 
-;; enable line mode for certain modes only
-(add-hook 'c-mode-common-hook (lambda () (linum-mode 1)))
-(add-hook 'ruby-mode-hook (lambda () (linum-mode 1)))
+  (if on_darwin
+      (set-face-attribute 'default nil :family "SF Mono" :height 160 :weight 'normal))
 
-; ztree
-(use-package ztree)
+  (if on_linux
+      (setq visible-bell 1)
+    (use-package cmake-ide
+      :after rtags
+      :defer 2
+      :config
+      (cmake-ide-setup)
+      (bind-keys :map helm-gtags-mode-map
+                 ( "f10" . cmake-ide-compile))
+      :init
+      ;; use .dir-locals.el to define a directory local variable and set cmake-ide-build-dir there
+      (setq cmake-ide-cmake-opts "-G Ninja -DCMAKE_BUILD_TYPE=Debug")))
 
-;;rust mode
-(with-eval-after-load 'rust-mode
-  (add-hook 'flycheck-mode-hook #'flycheck-rust-setup))
-
-;; gdb
-(defadvice gdb-setup-windows (around setup-more-gdb-windows activate)
-  ad-do-it
-  (split-window-horizontally)
-  (other-window 1)
-  (gdb-set-window-buffer
-   (gdb-get-buffer-create 'gdb-some-buffer-type)))
-(setq gud-tooltip-mode t)
-
-
-;; mac
-(if on_darwin
-    (set-face-attribute 'default nil :family "SF Mono" :height 160 :weight 'normal))
-
-
-(use-package docker
-  :ensure t
-  :bind ("C-c d" . docker))
-
-;; subtitles
-(add-to-list 'auto-mode-alist '("\\.srt$" . text-mode))
+  (use-package docker
+    :ensure t
+    :bind ("C-c d" . docker))
 
 #+END_SRC
