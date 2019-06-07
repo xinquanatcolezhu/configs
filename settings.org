@@ -127,7 +127,7 @@ Delete
 
   (use-package helm :ensure t)
   (use-package ace-window :ensure t)
-  (use-package ztree)
+  (use-package ztree :ensure t)
   (use-package undo-tree :diminish undo-tree-mode :init (global-undo-tree-mode))
   (use-package recentf  :init (setq recentf-max-saved-items 2000 recentf-max-menu-items 2000))
   (use-package flycheck :diminish flycheck-mode :ensure t
