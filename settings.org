@@ -19,10 +19,6 @@ Use below lisp function to turn on debugging
 * Sane defaults
 =setq= takes effect in the local buffer while setq-default affects all buffers.
 
-Edit local file as root in =TRAMP=
-=C-x C-f /su::/etc/hosts=
-=C-x C-f /sudo::/etc/hosts=
-
 #+BEGIN_SRC emacs-lisp
   (setq user-full-name "Xinquan Zhu")
   (setq auto-revert-interval 1            ; Refresh buffers fast
@@ -43,6 +39,8 @@ Edit local file as root in =TRAMP=
         ediff-split-window-function 'split-window-horizontally
         tramp-default-method "ssh"  ;;TRAMP mode
         default-major-mode 'text-mode
+        save-interprogram-paste-before-kill t
+        use-dialog-box nil
         auto-fill-mode 1)
 
   ;(setq-default indent-tabs-mode nil) ; stop adding tab
@@ -68,41 +66,20 @@ Edit local file as root in =TRAMP=
     (add-hook hook (lambda () (flyspell-mode -1))))
 
   (show-paren-mode t); Matches parentheses and such in every mode
-  (winner-mode t) ; keep tracking the window arrangement, using C-c <left> <right>
   (add-hook 'csv-mode-hook (lambda()
                              (standard-display-ascii ?\t "^I")
                              (csv-align-fields nil (buffer-end -1) (buffer-end +1))
                              ))
   (defalias 'perl-mode 'cperl-mode)
 #+END_SRC
-
-* Key bindings
-
-Some useful commands
-
-M-c capitalize-word
-C-j newline and indent
-zap-up-to-char
-
-#+BEGIN_SRC  emacs-lisp
-
-  (require 'misc)
-  (global-set-key (kbd "M-!") 'async-shell-command)
-  (global-set-key (kbd "M-&") 'shell-command)
-  (global-set-key (kbd "M-[") 'move-line-up)
-  (global-set-key (kbd "M-]") 'move-line-down)
-  (global-set-key "\C-c\C-u" 'uncomment-region)
-  (global-set-key "\C-c\C-c" 'comment-region)
-  (global-set-key (kbd "\C-o") 'other-window)
-  (global-set-key (kbd "\C-c <down>") 'enlarge-window)
-  (global-set-key (kbd "\C-c <up>") 'shrink-window)
-  (global-set-key (kbd "RET") 'newline-and-indent)
-  (global-set-key (kbd "C-x f") 'find-name-dired)
-  (global-set-key (kbd "M-z") 'zap-up-to-char)
-
-#+END_SRC
-
 * My Interactive functions
+
+Some built-in function
+
+Delete
+=M-\= Removes all spaces
+=M-^= Joins current line with previous line (doesn’t matter where the point is on the line)
+
 
 #+BEGIN_SRC emacs-lisp
   (defun today ()
@@ -148,6 +125,7 @@ zap-up-to-char
   (use-package diminish :ensure t)
   (diminish 'abbrev-mode "Abv")
 
+  (use-package helm :ensure t)
   (use-package ace-window :ensure t)
   (use-package ztree)
   (use-package undo-tree :diminish undo-tree-mode :init (global-undo-tree-mode))
@@ -158,6 +136,7 @@ zap-up-to-char
     (setq flycheck-shellcheck-follow-sources nil))
 
   (use-package avy :bind ("C-;" . avy-goto-char)) ;; Jump to a word starting with a given char.
+  (global-set-key (kbd "C-;") 'avy-goto-char)
   (use-package auto-save-buffers-enhanced :init (setq auto-save-buffers-enhanced-interval 2)
     (auto-save-buffers-enhanced t))
   (use-package multiple-cursors :bind ( "C->" . mc/mark-next-like-this)
@@ -175,27 +154,51 @@ zap-up-to-char
   (use-package iedit-mode :init (lambda () (call-interactively 'iedit-restrict-function)) :bind ("\C-ce" . iedit-mode))
   (use-package expand-region :init (setq expand-region-fast-keys-enabled nil) (setq er--show-expansion-message t)
     :bind ( "C-=" . er/expand-region))
-
+  (use-package winner :ensure t  :init (winner-mode 1))
 
 #+END_SRC
 
-* Helm, Theme and power line
+* Key bindings
 
-=helm-locate= is very helpful to find files
+Some useful commands
 
-#+BEGIN_SRC emacs-lisp
-  (setq custom-safe-themes t)
-  (load-theme 'monokai)
-  (use-package spaceline-config) (spaceline-emacs-theme)
+=M-c= capitalize-word
+=C-j= newline and indent
+=M-z= zap-up-to-char
 
-    ;;; helm
-  (use-package helm :ensure t)
+#+BEGIN_SRC  emacs-lisp
+
+  (require 'misc)
+  (global-set-key (kbd "M-!") 'async-shell-command)
+  (global-set-key (kbd "M-&") 'shell-command)
+  (global-set-key (kbd "M-[") 'move-line-up)
+  (global-set-key (kbd "M-]") 'move-line-down)
+  (global-set-key "\C-c\C-u" 'uncomment-region)
+  (global-set-key "\C-c\C-c" 'comment-region)
+  (global-set-key (kbd "\C-o") 'other-window)
+  (global-set-key (kbd "\C-c <down>") 'enlarge-window)
+  (global-set-key (kbd "\C-c <up>") 'shrink-window)
+  (global-set-key (kbd "RET") 'newline-and-indent)
+  (global-set-key (kbd "C-x f") 'find-name-dired)
+  (global-set-key (kbd "M-z") 'zap-up-to-char)
   (global-set-key (kbd "M-x") 'helm-M-x)
   (global-set-key (kbd "C-x C-f") 'helm-find-files)
   (global-set-key (kbd "C-x C-r") 'helm-recentf)
   (global-set-key (kbd "C-c k") 'helm-show-kill-ring)
   (global-set-key (kbd "C-x C-b") 'helm-buffers-list)
   (global-set-key (kbd "C-x b")   'helm-mini)
+
+#+END_SRC
+
+* Helm, Theme and power line
+
+=helm-locate= is very helpful to find files
+=helm-bookmark= I should use it more often
+
+#+BEGIN_SRC emacs-lisp
+  (setq custom-safe-themes t)
+  (load-theme 'monokai)
+  (use-package spaceline-config) (spaceline-emacs-theme)
 
 
   (defun xq/highlight-logs ()
@@ -204,7 +207,7 @@ zap-up-to-char
       (hi-lock-mode 1)
       (highlight-lines-matching-regexp "error:" 'hi-red-b)
       (highlight-lines-matching-regexp "info:" 'hi-yellow-b)))
-  (add-hook 'find-file-hook 'xq/highlite-logs)
+  (add-hook 'find-file-hook 'xq/highlight-logs)
 
 #+END_SRC
 
@@ -223,6 +226,22 @@ Jump to the major mode for the source block in org file: =C-c ''= for command =o
 Org tangling can be useful to export the code =:tangle=
 
 Narrowing down a section =C-x n s= for command =org-narrow-to-subtree=
+
+In org-babel, you can speed up shell command by running multiple source code blocks under one session.
+#+BEGIN_SRC example
+:PROPERTIES:
+:session: session1
+:results: output
+:END:
+#+END_SRC
+
+Edit local file as root in =TRAMP=
+=C-x C-f /su::/etc/hosts=
+=C-x C-f /sudo::/etc/hosts=
+Remote Access with TRAMP in an org file can be typed as a link like below
+#+BEGIN_SRC
+[[/1:/home/xinquan/.my.cnf]]
+#+END_SRC
 
 #+BEGIN_SRC emacs-lisp
   (when  (require 'org-bullets nil 'noerror)
@@ -243,7 +262,7 @@ Narrowing down a section =C-x n s= for command =org-narrow-to-subtree=
          ))
       (setq org-babel-C-compiler "clang")
       (setq org-babel-C++-compiler "clang++")
-
+      (setq org-babel-python-command "python2")
       (setq org-export-babel-evaluate nil)
       (setq org-startup-indented t)
       ;; increase imenu depth to include third level headings
@@ -293,6 +312,8 @@ Try the =moo-implement= to auto-complete the c++ functions. =moo-jump-directory=
 the codes
 
 `C-c TAB` will past the helm completion result
+
+=hs-minor-mode= is quite helpful to show/hide code blocks
 
 #+BEGIN_SRC emacs-lisp
   (use-package helm-gtags
@@ -452,6 +473,58 @@ the codes
                    (mapcar #'company-mode/backend-with-yas company-backends)))
 #+END_SRC
 
+* Text surround and wrapping
+
+
+#+BEGIN_SRC emacs-lisp
+(defun surround (start end txt)
+  "Wrap region with textual markers.
+
+ Without active region (START and END), use the current 'symbol word' at point instead of TXT.
+ Useful for wrapping parens and angle-brackets to also insert the matching closing symbol.
+
+ This function also supports some `org-mode' wrappers:
+
+  - `#s` wraps the region in a source code block
+  - `#e` wraps it in an example block
+  - `#q` wraps it in an quote block"
+  (interactive "r\nsEnter text to surround: " start end txt)
+
+  ;; If the region is not active, we use the 'thing-at-point' function
+  ;; to get a "symbol" (often a variable or a single word in text),
+  ;; and use that as our region.
+
+  (if (not (region-active-p))
+      (let ((new-region (bounds-of-thing-at-point 'symbol)))
+        (setq start (car new-region))
+        (setq end (cdr new-region))))
+
+  ;; We create a table of "odd balls" where the front and the end are
+  ;; not the same string.
+  (let* ((s-table '(("#e" . ("#+BEGIN_EXAMPLE\n" "\n#+END_EXAMPLE") )
+                    ("#s" . ("#+BEGIN_SRC \n"    "\n#+END_SRC") )
+                    ("#q" . ("#+BEGIN_QUOTE\n"   "\n#+END_QUOTE"))
+                    ("<"  . ("<" ">"))
+                    ("("  . ("(" ")"))
+                    ("{"  . ("{" "}"))
+                    ("["  . ("[" "]"))))    ; Why yes, we'll add more
+         (s-pair (assoc-default txt s-table)))
+
+    ;; If txt doesn't match a table entry, then the pair will just be
+    ;; the text for both the front and the back...
+    (unless s-pair
+      (setq s-pair (list txt txt)))
+
+    (save-excursion
+      (narrow-to-region start end)
+      (goto-char (point-min))
+      (insert (car s-pair))
+      (goto-char (point-max))
+      (insert (cadr s-pair))
+      (widen))))
+
+(global-set-key (kbd "C-+") 'surround)
+#+END_SRC
 * Evil/smart parens
 
 Move forward across one balanced expression. (smartparens.el
@@ -531,6 +604,9 @@ C-M-f/ C-M-b
     )
   (when  (require 'yasnippet nil 'noerror)
     (add-hook 'web-mode-hook 'yas-minor-mode))
+
+  ; Ruby
+  (use-package rubocopfmt :ensure t)
 
   (add-hook 'ruby-mode-hook #'aggressive-indent-mode)
   (eval-after-load "ruby-mode"
