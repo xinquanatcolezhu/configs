@@ -1,7 +1,9 @@
 * Notes
 Your =init.el= file should look like this combined with this file =settings.org=
 
-#+BEGIN_SRC 
+mark-whole-buffer =C-x h=
+
+#+BEGIN_SRC
   (package-initialize)
   (require 'org)
   (org-babel-load-file
@@ -9,7 +11,7 @@ Your =init.el= file should look like this combined with this file =settings.org=
                    user-emacs-directory))
 #+END_SRC
 
-=C-h f= tells you the elisp function or macro do e.g. =C-h f eval-when-compile= 
+=C-h f= tells you the elisp function or macro do e.g. =C-h f eval-when-compile=
 
 Use below lisp function to turn on debugging
 (setq debug-on-error t)
@@ -20,21 +22,9 @@ Use below lisp function to turn on debugging
 Edit local file as root in =TRAMP=
 =C-x C-f /su::/etc/hosts=
 =C-x C-f /sudo::/etc/hosts=
-                                          
+
 #+BEGIN_SRC emacs-lisp
   (setq user-full-name "Xinquan Zhu")
-  (setenv "PATH" (concat (getenv "PATH") ":/usr/local/bin"))
-  (setq exec-path (append exec-path '("/usr/local/bin")))
-
-                                          ; add python bin
-  (setenv "PATH" (concat (concat (concat (getenv "PATH")) ":") (concat (getenv "HOME") "/.local/bin/")))
-  (setq exec-path (append exec-path '((concat (getenv "HOME") "/.local/bin/"))))
-                                          ;add ruby path
-  (setenv "PATH" (concat (getenv "PATH") "/usr/local/opt/ruby/bin"))
-  (setq exec-path (append exec-path '("/usr/local/opt/ruby/bin")))
-
-  (define-coding-system-alias 'UTF-8 'utf-8)
-  (global-whitespace-mode 1)
   (setq auto-revert-interval 1            ; Refresh buffers fast
         echo-keystrokes 0.1               ; Show keystrokes asap
         inhibit-startup-message t         ; No splash screen please
@@ -54,22 +44,9 @@ Edit local file as root in =TRAMP=
         tramp-default-method "ssh"  ;;TRAMP mode
         default-major-mode 'text-mode
         auto-fill-mode 1)
-  (setq whitespace-style '(face tabs tab-mark spaces space-mark))
-  (setq whitespace-display-mappings
-        '((space-mark ?\u3000 [?\u25a1])
-          (tab-mark ?\t [?\xBB ?\t] [?\\ ?\t])))
-  (defvar my/blue-color "#8cb3f2")
-  (set-face-attribute 'whitespace-trailing nil
-                      :background nil
-                      :foreground "DeepPink"
-                      :underline t)
-  (set-face-attribute 'whitespace-tab nil
-                      :background nil
-                      :foreground my/blue-color
-                      :underline t)
 
-                                          ;(setq-default indent-tabs-mode nil) ; stop adding tab
-
+  ;(setq-default indent-tabs-mode nil) ; stop adding tab
+  (setq gc-cons-threshold 50000000) ; Emacs running on modern machines
   ;; Show system name and full file path in emacs frame title
   (setq frame-title-format
         (list (format "%s %%S: %%j " (system-name))
@@ -80,13 +57,12 @@ Edit local file as root in =TRAMP=
 
   (setq-default fill-column 80)
   (setq-default tab-width 4)
-  (setq-default show-trailing-whitespace t)
   (setq-default indicate-empty-lines t)
   (setq-default ispell-program-name "aspell")
 
   (add-hook 'before-save-hook 'delete-trailing-whitespace)
   (add-hook 'text-mode-hook '(lambda () (visual-line-mode t) (flyspell-mode 1)))
-  
+
   ;;disable spell checker when editing logs
   (dolist (hook '(change-log-mode-hook log-edit-mode-hook))
     (add-hook hook (lambda () (flyspell-mode -1))))
@@ -100,14 +76,17 @@ Edit local file as root in =TRAMP=
   (defalias 'perl-mode 'cperl-mode)
 #+END_SRC
 
-* Key-bindings
+* Key bindings
 
-Some useful commands 
+Some useful commands
 
 M-c capitalize-word
 C-j newline and indent
+zap-up-to-char
 
 #+BEGIN_SRC  emacs-lisp
+
+  (require 'misc)
   (global-set-key (kbd "M-!") 'async-shell-command)
   (global-set-key (kbd "M-&") 'shell-command)
   (global-set-key (kbd "M-[") 'move-line-up)
@@ -119,6 +98,7 @@ C-j newline and indent
   (global-set-key (kbd "\C-c <up>") 'shrink-window)
   (global-set-key (kbd "RET") 'newline-and-indent)
   (global-set-key (kbd "C-x f") 'find-name-dired)
+  (global-set-key (kbd "M-z") 'zap-up-to-char)
 
 #+END_SRC
 
@@ -126,7 +106,7 @@ C-j newline and indent
 
 #+BEGIN_SRC emacs-lisp
   (defun today ()
-    (interactive)     
+    (interactive)
     (insert (format-time-string "%A, %B %e, %Y"))
     (newline)
     (newline))
@@ -177,9 +157,7 @@ C-j newline and indent
     (setq global-flycheck-mode t)
     (setq flycheck-shellcheck-follow-sources nil))
 
-  (add-hook 'after-init-hook #'global-flycheck-mode)
-
-  (use-package avy :bind ("C-:" . avy-goto-char)) ;; Jump to a word starting with a given char.
+  (use-package avy :bind ("C-;" . avy-goto-char)) ;; Jump to a word starting with a given char.
   (use-package auto-save-buffers-enhanced :init (setq auto-save-buffers-enhanced-interval 2)
     (auto-save-buffers-enhanced t))
   (use-package multiple-cursors :bind ( "C->" . mc/mark-next-like-this)
@@ -194,7 +172,6 @@ C-j newline and indent
                                          '(google-translate-default-target-language "zh-CN")))
     :bind ("\C-ct" . google-translate-at-point))
   (use-package validate :ensure t)
-  (use-package helm :ensure t)
   (use-package iedit-mode :init (lambda () (call-interactively 'iedit-restrict-function)) :bind ("\C-ce" . iedit-mode))
   (use-package expand-region :init (setq expand-region-fast-keys-enabled nil) (setq er--show-expansion-message t)
     :bind ( "C-=" . er/expand-region))
@@ -202,7 +179,7 @@ C-j newline and indent
 
 #+END_SRC
 
-* Helm, Theme and powerline
+* Helm, Theme and power line
 
 =helm-locate= is very helpful to find files
 
@@ -211,13 +188,24 @@ C-j newline and indent
   (load-theme 'monokai)
   (use-package spaceline-config) (spaceline-emacs-theme)
 
-  ;;; helm
+    ;;; helm
+  (use-package helm :ensure t)
   (global-set-key (kbd "M-x") 'helm-M-x)
   (global-set-key (kbd "C-x C-f") 'helm-find-files)
   (global-set-key (kbd "C-x C-r") 'helm-recentf)
   (global-set-key (kbd "C-c k") 'helm-show-kill-ring)
   (global-set-key (kbd "C-x C-b") 'helm-buffers-list)
   (global-set-key (kbd "C-x b")   'helm-mini)
+
+
+  (defun xq/highlight-logs ()
+    (interactive)
+    (when (equal "log" (file-name-extension (buffer-file-name)))
+      (hi-lock-mode 1)
+      (highlight-lines-matching-regexp "error:" 'hi-red-b)
+      (highlight-lines-matching-regexp "info:" 'hi-yellow-b)))
+  (add-hook 'find-file-hook 'xq/highlite-logs)
+
 #+END_SRC
 
 * Git/Magit
@@ -228,11 +216,21 @@ C-j newline and indent
                              (setq magit-push-always-verify nil)) :bind ( "C-x g" . magit-status)
                              :commands (magit-status magit-log-all))
 #+END_SRC
-* ORG
+* ORG Mode
+
+Jump to the major mode for the source block in org file: =C-c ''= for command =org-edit-special=
+
+Org tangling can be useful to export the code =:tangle=
+
+Narrowing down a section =C-x n s= for command =org-narrow-to-subtree=
+
 #+BEGIN_SRC emacs-lisp
   (when  (require 'org-bullets nil 'noerror)
     (setq org-bullets-face-name (quote org-bullet-face))
-    (add-hook 'org-mode-hook (lambda () (org-bullets-mode 1)))
+    (add-hook 'org-mode-hook (lambda ()
+                               (org-bullets-mode 1)
+                               (whitespace-mode -1)
+                               ))
     (setq org-src-fontify-natively t)
     (setq org-bullets-bullet-list '("✤" "◉" "***" "****" "▹" "†" "✠" "✚" "✜" "✛" "✣" "✥")))
 
@@ -254,9 +252,11 @@ C-j newline and indent
       (add-hook 'org-babel-after-execute-hook 'org-display-inline-images)
       (setq org-src-tab-acts-natively t)
       (setq org-confirm-babel-evaluate nil)))
+
+
 #+END_SRC
 
-* Shell and Terminal  
+* Shell and Terminal
 #+BEGIN_SRC emacs-lisp
  (add-hook 'shell-mode-hook (lambda () (setq show-trailing-whitespace nil)))
  (add-hook 'term-mode-hook (lambda() (setq show-trailing-whitespace nil)))
@@ -451,11 +451,12 @@ the codes
     (validate-setq company-backends
                    (mapcar #'company-mode/backend-with-yas company-backends)))
 #+END_SRC
-* Others
+
+* Evil/smart parens
 
 Move forward across one balanced expression. (smartparens.el
 =sp-forward-sexp= vs =forward-sexp= Move forward across one balanced expression (sexp).
-C-M-f/ C-M-b 
+C-M-f/ C-M-b
 
 #+BEGIN_SRC emacs-lisp
   (use-package smartparens
@@ -472,7 +473,8 @@ C-M-f/ C-M-b
                     flycheck-error-list-mode
                     git-rebase-mode))
       (add-to-list 'evil-emacs-state-modes mode))
-                                          ; One wants to paste some previously copied; (from application other than Emacs)
+
+; One wants to paste some previously copied; (from application other than Emacs)
     (setq evil-mode-line-format nil
           evil-visual-update-x-selection 'ignore
           evil-insert-state-cursor '(bar "White")
@@ -500,7 +502,11 @@ C-M-f/ C-M-b
     (setq wttrin-default-cities '("Tokyo"
                                   "Shanghai")))
 
-  ;; python
+#+END_SRC
+
+* Javascript, Ruby & Python
+
+#+BEGIN_SRC emacs-lisp
   (use-package elpy  :defer t
     :commands (elpy-nable)
     :init
@@ -518,7 +524,6 @@ C-M-f/ C-M-b
        (define-key python-mode-map (kbd "M-,") 'pop-tag-mark)
        (define-key python-mode-map (kbd "M-'") 'python-nav-forward-sexp)))
 
-                                          ; Javascript
   (use-package js2-mode
     :mode ("\\.js\\'". js2-mode)
     :init
@@ -550,26 +555,50 @@ C-M-f/ C-M-b
 
   '(auto-insert-mode t)
 
-  ;; enable line mode for certain modes only
-  (add-hook 'c-mode-common-hook (lambda () (linum-mode 1)))
-  (add-hook 'ruby-mode-hook (lambda () (linum-mode 1)))
-
   ;;rust mode
   (with-eval-after-load 'rust-mode
     (add-hook 'flycheck-mode-hook #'flycheck-rust-setup))
 
 #+END_SRC
 
-* File extension and mode mapping 
+* File extension and mode mapping
+
+Certain mode should enable line number mode and whitespace mode
+
 #+BEGIN_SRC emacs-lisp
-  ;; subtitles
-  (add-to-list 'auto-mode-alist '("\\.ctp$" . web-mode))
-  (add-to-list 'auto-mode-alist '("\\.srt$" . text-mode))
+   (add-hook 'c-mode-common-hook (lambda ()
+                                   (linum-mode 1)))
+   (add-hook 'ruby-mode-hook (lambda () (linum-mode 1)))
+
+   (add-to-list 'auto-mode-alist '("\\.ctp$" . web-mode))
+   (add-to-list 'auto-mode-alist '("\\.srt$" . text-mode))
+
+
 #+END_SRC
+* Whitespace Mode
+#+BEGIN_SRC emacs-lisp
+  (use-package whitespace
+    :bind ("C-c T w" . whitespace-mode)
+    :init
+    (setq whitespace-line-column nil
+          whitespace-display-mappings '((space-mark 32 [183] [46])
+                                        (newline-mark 10 [9166 10])
+                                        (tab-mark 9 [187 9] [92 9])))
+    :config
+    (set-face-attribute 'whitespace-space       nil :foreground "#666666" :background nil)
+    (set-face-attribute 'whitespace-newline     nil :foreground "#666666" :background nil)
+    (set-face-attribute 'whitespace-indentation nil :foreground "#666666" :background nil)
+    (set-face-attribute 'whitespace-trailing    nil :foreground "DeepPink" :background nil)
+    (set-face-attribute 'whitespace-tab         nil :foreground "#8cb3f2" :background nil :underline t)
+    :diminish whitespace-mode)
 
-* Mac OSX / Linux 
+#+END_SRC
+* Mac OSX / Linux and environment PATH
+
+The variable =exec-path= is the equivalent of the PATH environment variable for Emacs.
 
 #+BEGIN_SRC emacs-lisp
+
   (defvar system-type-as-string (prin1-to-string system-type))
   (defvar on_windows_nt (string-match "windows-nt" system-type-as-string))
   (defvar on_darwin     (string-match "darwin" system-type-as-string))
@@ -591,7 +620,15 @@ C-M-f/ C-M-b
                  ( "f10" . cmake-ide-compile))
       :init
       ;; use .dir-locals.el to define a directory local variable and set cmake-ide-build-dir there
-      (setq cmake-ide-cmake-opts "-G Ninja -DCMAKE_BUILD_TYPE=Debug")))
+      (setq cmake-ide-cmake-opts "-G Ninja -DCMAKE_BUILD_TYPE=Debug"))
+
+  )
+
+  (setq exec-path (append exec-path '("/usr/local/bin")))
+  ; add python bin
+  (setq exec-path (append exec-path '((concat (getenv "HOME") "/.local/bin/"))))
+
+  (define-coding-system-alias 'UTF-8 'utf-8)
 
   (use-package docker
     :ensure t
