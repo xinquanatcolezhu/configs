@@ -9,9 +9,8 @@ perl -wle \
 
 ```
 
-## load environment value in 
-=.emacs.d/init.el=
-
+## load environment values
+.emacs.d/init.el
 ```
 (load-file (expand-file-name "~/.emacs.d/shellenv.el"))
 (dolist (path (reverse (split-string (getenv "PATH") ":")))
