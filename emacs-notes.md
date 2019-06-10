@@ -1,4 +1,4 @@
-# How to sync ENV vairable.
+# How to sync path ENV vairable between shell and Emacs
 
 ## create emacs env file
 .bashrc
