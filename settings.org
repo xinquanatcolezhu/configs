@@ -277,9 +277,91 @@ Remote Access with TRAMP in an org file can be typed as a link like below
 #+END_SRC
 
 * Shell and Terminal
+Got the below shell functions inspired by the below authors
+
+https://github.com/howardabrams/dot-files/
+https://github.com/wasamasa/dotemacs/blob/master/init.org
+
 #+BEGIN_SRC emacs-lisp
- (add-hook 'shell-mode-hook (lambda () (setq show-trailing-whitespace nil)))
- (add-hook 'term-mode-hook (lambda() (setq show-trailing-whitespace nil)))
+  (defun eshell-here ()
+    "Opens up a new shell in the directory associated with the
+          current buffer's file. The eshell is renamed to match that
+          directory to make multiple eshell windows easier."
+    (interactive)
+    (let* ((height (/ (window-total-height) 3)))
+      (split-window-vertically (- height))
+      (other-window 1)
+      (eshell "new")
+      (insert (concat "ls"))
+      (eshell-send-input)))
+
+  (bind-key "C-&" 'eshell-here)
+
+                                          ; unconditionally delete the character, but to quit on an empty prompt, too. like normal shell
+                                          ; http://emacshorrors.com/posts/life-is-too-much.html
+  (defun xq/eshell-quit-or-delete-char (arg)
+    (interactive "p")
+    (if (and (eolp) (looking-back eshell-prompt-regexp))
+        (kill-buffer-and-window)
+      (delete-forward-char arg)))
+
+  (add-hook 'eshell-mode-hook (lambda () (define-key eshell-mode-map (kbd "C-d") 'xq/eshell-quit-or-delete-char)))
+
+  (add-hook 'shell-mode-hook (lambda () (setq show-trailing-whitespace nil)))
+  (add-hook 'term-mode-hook (lambda() (setq show-trailing-whitespace nil)))
+
+  (defun xq/eshell-host->tramp (username hostname &optional prefer-root)
+    "Returns a TRAMP reference based on a USERNAME and HOSTNAME that refers to any host or IP address."
+    (cond ((string-match-p "^/" host)
+           host)
+          ((or (and prefer-root (not username)) (equal username "root"))
+           (format "/ssh:%s|sudo:%s:" hostname hostname))
+          ((or (null username) (equal username user-login-name))
+           (format "/ssh:%s:" hostname))
+          (t
+           (format "/ssh:%s|sudo:%s|sudo@%s:%s:" hostname hostname username hostname))))
+
+ (defun xq/eshell-host-regexp (regexp)
+    "Returns a particular regular expression based on symbol, REGEXP"
+  (let* ((user-regexp      "\\(\\([[:alpha:].]+\\)@\\)?")
+         (tramp-regexp     "\\b/ssh:[:graph:]+")
+         (ip-char          "[[:digit:]]")
+         (ip-plus-period   (concat ip-char "+" "\\."))
+         (ip-regexp        (concat "\\(\\(" ip-plus-period "\\)\\{3\\}" ip-char "+\\)"))
+         (host-char        "[[:alpha:][:digit:]-]")
+         (host-plus-period (concat host-char "+" "\\."))
+         (host-regexp      (concat "\\(\\(" host-plus-period "\\)+" host-char "+\\)"))
+         (horrific-regexp  (concat "\\b"
+                                   user-regexp ip-regexp
+                                   "\\|"
+                                   user-regexp host-regexp
+                                   "\\b")))
+    (cond
+     ((eq regexp 'tramp) tramp-regexp)
+     ((eq regexp 'host)  host-regexp)
+     ((eq regexp 'full)  horrific-regexp))))
+
+  (defun eshell-there (host)
+    "Creates an eshell session that uses Tramp to automatically connect to a remote system, HOST.  The hostname
+ can be either the IP address, or FQDN, and can specify the user account, as in root@blah.com. HOST can also be a
+ complete Tramp reference."
+    (interactive "sHost: ")
+    (let* ((default-directory
+             (cond
+              ((string-match-p "^/" host) host)
+              ((string-match-p (xq/eshell-host-regexp 'full) host)
+               (string-match (xq/eshell-host-regexp 'full) host) ;; Why!?
+               (let* ((user1 (match-string 2 host))
+                      (host1 (match-string 3 host))
+                      (user2 (match-string 6 host))
+                      (host2 (match-string 7 host)))
+                 (if host1
+                     (xq/eshell-host->tramp user1 host1)
+                   (xq/eshell-host->tramp user2 host2))))
+
+              (t (format "/%s:" host)))))
+      (eshell-here)))
+
   ;; Setup Emacs to run zsh/bash as its primary shell.
   (setq shell-file-name "bash")
   (setq shell-command-switch "-c")
@@ -307,6 +389,10 @@ Remote Access with TRAMP in an org file can be typed as a link like below
         )))
   (define-key term-raw-map (kbd "C-j") 'term-switch-to-shell-mode)
 #+END_SRC
+
+#+RESULTS:
+: term-switch-to-shell-mode
+
 * C++ development
 
 Try the =moo-implement= to auto-complete the c++ functions. =moo-jump-directory= is also very helpful to navigate
@@ -348,9 +434,6 @@ the codes
   (add-hook 'c-mode-common-hook
             (lambda() (global-set-key  (kbd "<f8>") 'cff-find-other-file)
               (add-hook 'before-save-hook 'clang-format-buffer nil t)))
-
-  (add-to-list 'auto-mode-alist '("\\.h$" . c++-mode))
-  (add-to-list 'auto-mode-alist '("\\.ipp$" . c++-mode))
 
   (defun bury-compile-buffer-if-successful (buffer string)
     "Bury a compilation buffer if succeeded without warnings"
@@ -604,6 +687,10 @@ C-M-f/ C-M-b
     :init
     (add-hook 'js2-mode-hook #'js2-imenu-extras-mode)
     )
+  (use-package rjsx-mode :ensure t)
+  (use-package prettier-js :ensure t)
+
+
   (when  (require 'yasnippet nil 'noerror)
     (add-hook 'web-mode-hook 'yas-minor-mode))
 
@@ -651,7 +738,9 @@ Certain mode should enable line number mode and whitespace mode
 
    (add-to-list 'auto-mode-alist '("\\.ctp$" . web-mode))
    (add-to-list 'auto-mode-alist '("\\.srt$" . text-mode))
-
+   (add-to-list 'auto-mode-alist '("\\.h$" . c++-mode))
+   (add-to-list 'auto-mode-alist '("\\.ipp$" . c++-mode))
+   (add-to-list 'auto-mode-alist '("\\.js$" . rjsx-mode)) ; ReactJSX
 
 #+END_SRC
 * Whitespace Mode
