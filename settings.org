@@ -72,7 +72,7 @@ Use below lisp function to turn on debugging
                              ))
   (defalias 'perl-mode 'cperl-mode)
 #+END_SRC
-* My Interactive functions
+* Interactive functions
 
 Some built-in function
 
@@ -80,12 +80,10 @@ Delete
 =M-\= Removes all spaces
 =M-^= Joins current line with previous line (doesn’t matter where the point is on the line)
 
-
 #+BEGIN_SRC emacs-lisp
   (defun today ()
     (interactive)
     (insert (format-time-string "%A, %B %e, %Y"))
-    (newline)
     (newline))
   (define-key ctl-x-map "t" 'today)
 
@@ -537,7 +535,6 @@ the codes
 
     :init (global-company-mode t)
     :config
-    ;; no delay no autocomplete
     (validate-setq
      company-idle-delay 0.08
      company-minimum-prefix-length 2
@@ -551,11 +548,8 @@ the codes
     (validate-setq company-backends (delete 'company-clang company-backends))
     (validate-setq company-backends (delete 'company-bbdb company-backends))
     (validate-setq company-backends (delete 'company-oddmuse company-backends))
-    '(add-to-list
-      'company-backends 'company-rtags)
-    (validate-setq company-backends
-                   (mapcar #'company-mode/backend-with-yas company-backends)))
-
+    (validate-setq company-backends (mapcar #'company-mode/backend-with-yas company-backends))
+    '(add-to-list 'company-backends 'company-rtags))
 #+END_SRC
 
 * Text surround and wrapping
