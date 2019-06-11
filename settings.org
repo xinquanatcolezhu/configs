@@ -133,7 +133,8 @@ Delete
     (setq global-flycheck-mode t)
     (setq flycheck-shellcheck-follow-sources nil))
 
-  (use-package avy :bind ("C-;" . avy-goto-char)) ;; Jump to a word starting with a given char.
+  (use-package avy :ensure t :init (setq avy-background t))
+
   (use-package auto-save-buffers-enhanced :init (setq auto-save-buffers-enhanced-interval 2)
     (auto-save-buffers-enhanced t))
   (use-package multiple-cursors :bind ( "C->" . mc/mark-next-like-this)
