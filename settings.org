@@ -130,7 +130,7 @@ Delete
   (use-package recentf  :init (setq recentf-max-saved-items 2000 recentf-max-menu-items 2000))
   (use-package flycheck :diminish flycheck-mode :ensure t
     :config
-    (setq global-flycheck-mode t)
+    (add-hook 'after-init-hook #'global-flycheck-mode)
     (setq flycheck-shellcheck-follow-sources nil))
 
   (use-package avy :ensure t :init (setq avy-background t))
@@ -153,6 +153,7 @@ Delete
   (use-package expand-region :init (setq expand-region-fast-keys-enabled nil) (setq er--show-expansion-message t)
     :bind ( "C-=" . er/expand-region))
   (use-package winner :ensure t  :init (winner-mode 1))
+  ; (use-package mermaid-mode)
 
 #+END_SRC
 
@@ -187,6 +188,7 @@ Some useful commands
   (global-set-key (kbd "C-x b")   'helm-mini)
 
   (global-set-key (kbd "C-;") 'avy-goto-char)
+  (global-set-key (kbd "<f12>") 'ace-window)
 
 #+END_SRC
 
@@ -295,9 +297,8 @@ https://github.com/wasamasa/dotemacs/blob/master/init.org
       (eshell-send-input)))
 
   (bind-key "C-&" 'eshell-here)
-
-                                          ; unconditionally delete the character, but to quit on an empty prompt, too. like normal shell
-                                          ; http://emacshorrors.com/posts/life-is-too-much.html
+  ; unconditionally delete the character, but to quit on an empty prompt, too. like normal shell
+  ; http://emacshorrors.com/posts/life-is-too-much.html
   (defun xq/eshell-quit-or-delete-char (arg)
     (interactive "p")
     (if (and (eolp) (looking-back eshell-prompt-regexp))
@@ -680,12 +681,13 @@ C-M-f/ C-M-b
   (use-package js2-mode
     :mode ("\\.js\\'". js2-mode)
     :init
-    (add-hook 'js2-mode-hook #'js2-imenu-extras-mode)
-    )
-  (use-package rjsx-mode :ensure t)
+    (add-hook 'js2-mode-hook #'js2-imenu-extras-mode))
+
+  ;Disable jshint since we prefer eslint checking, explicitly select javascript-eslint
+  (use-package rjsx-mode :ensure t :config
+    (add-hook 'rjsx-mode-hook (lambda() (flycheck-select-checker 'javascript-eslint))))
+
   (use-package prettier-js :ensure t)
-
-
   (when  (require 'yasnippet nil 'noerror)
     (add-hook 'web-mode-hook 'yas-minor-mode))
 
@@ -729,6 +731,7 @@ Certain mode should enable line number mode and whitespace mode
 
 #+BEGIN_SRC emacs-lisp
    (add-hook 'c-mode-common-hook (lambda () (linum-mode 1)))
+   (add-hook 'sh-mode-hook (lambda () (linum-mode 1)))
    (add-hook 'ruby-mode-hook (lambda () (linum-mode 1) (flyspell-prog-mode)))
 
    (add-to-list 'auto-mode-alist '("\\.ctp$" . web-mode))
@@ -760,6 +763,14 @@ Certain mode should enable line number mode and whitespace mode
 
 The variable =exec-path= is the equivalent of the PATH environment variable for Emacs.
 
+The old way of get execute path from shell is like below:
+#+BEGIN_EXAMPLE
+  (setq exec-path (append exec-path '("/usr/local/bin")))
+  ; add python bin
+  (setq exec-path (append exec-path '((concat (getenv "HOME") "/.local/bin/")
+#+END_EXAMPLE
+There is package called =exec-path-from-shell= helps us to manage the $PATH variable
+
 #+BEGIN_SRC emacs-lisp
 
   (defvar system-type-as-string (prin1-to-string system-type))
@@ -787,10 +798,7 @@ The variable =exec-path= is the equivalent of the PATH environment variable for 
 
   )
 
-  (setq exec-path (append exec-path '("/usr/local/bin")))
-  ; add python bin
-  (setq exec-path (append exec-path '((concat (getenv "HOME") "/.local/bin/"))))
-
+  (use-package exec-path-from-shell :ensure t :init (exec-path-from-shell-initialize))
   (define-coding-system-alias 'UTF-8 'utf-8)
 
   (use-package docker
