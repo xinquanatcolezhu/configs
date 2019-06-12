@@ -5,9 +5,8 @@ Testing mermaid
 
 ```mermaid
 graph LR
-   diamond{for_all_patterns}-->square
+   diamond{diamond}-->square
    square-->square2
-   return_items-->for_all_items{for_all_items}
    square2-->square3
    square3-->square4
    square2-.->square4
