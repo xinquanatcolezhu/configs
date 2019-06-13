@@ -681,13 +681,17 @@ C-M-f/ C-M-b
   (use-package js2-mode
     :mode ("\\.js\\'". js2-mode)
     :init
-    (add-hook 'js2-mode-hook #'js2-imenu-extras-mode))
+    (add-hook 'js2-mode-hook #'js2-imenu-extras-mode)
+    :config (progn (setq js2-strict-missing-semi-warning nil)))
 
   ;Disable jshint since we prefer eslint checking, explicitly select javascript-eslint
   (use-package rjsx-mode :ensure t :config
     (add-hook 'rjsx-mode-hook (lambda() (flycheck-select-checker 'javascript-eslint))))
 
-  (use-package prettier-js :ensure t)
+  (use-package prettier-js
+    :init
+    (add-hook 'js2-mode-hook 'prettier-js-mode))
+
   (when  (require 'yasnippet nil 'noerror)
     (add-hook 'web-mode-hook 'yas-minor-mode))
 
