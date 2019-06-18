@@ -41,10 +41,10 @@ Use below lisp function to turn on debugging
         default-major-mode 'text-mode
         save-interprogram-paste-before-kill t
         use-dialog-box nil
+        gc-cons-threshold (* 50 1000 1000) ; running on modern machines
         auto-fill-mode 1)
 
-  ;(setq-default indent-tabs-mode nil) ; stop adding tab
-  (setq gc-cons-threshold 50000000) ; Emacs running on modern machines
+  (setq-default indent-tabs-mode nil) ; stop adding tab
   ;; Show system name and full file path in emacs frame title
   (setq frame-title-format
         (list (format "%s %%S: %%j " (system-name))
@@ -126,7 +126,7 @@ Delete
   (use-package helm :ensure t)
   (use-package ace-window :ensure t)
   (use-package ztree :ensure t)
-  (use-package undo-tree :diminish undo-tree-mode :init (global-undo-tree-mode))
+  (use-package undo-tree :ensure t :diminish undo-tree-mode :init (global-undo-tree-mode))
   (use-package recentf  :init (setq recentf-max-saved-items 2000 recentf-max-menu-items 2000))
   (use-package flycheck :diminish flycheck-mode :ensure t
     :config
@@ -135,25 +135,27 @@ Delete
 
   (use-package avy :ensure t :init (setq avy-background t))
 
-  (use-package auto-save-buffers-enhanced :init (setq auto-save-buffers-enhanced-interval 2)
+  (use-package auto-save-buffers-enhanced :ensure t
+  :init (setq auto-save-buffers-enhanced-interval 2)
     (auto-save-buffers-enhanced t))
-  (use-package multiple-cursors :bind ( "C->" . mc/mark-next-like-this)
+  (use-package multiple-cursors :ensure t :bind ( "C->" . mc/mark-next-like-this)
     ( "C-<" . mc/mark-previous-like-this)( "C-S-c C-S-c" . mc/edit-lines))
-  (use-package yasnippet :init (yas-global-mode t)
+  (use-package yasnippet :ensure t :init (yas-global-mode t)
     :config (add-hook 'term-mode-hook
-                      (lambda()(setq yas-dont-activate t)(setq yas-snippet-dirs '("~/emacs.d/snippets")))))
+    (lambda()(setq yas-dont-activate t)(setq yas-snippet-dirs '("~/emacs.d/snippets")))))
 
-  (use-package google-translate :init (lambda()(require 'google-translate-default-ui)
-                                        (custom-set-variables
-                                         '(google-translate-default-source-language "en")
-                                         '(google-translate-default-target-language "zh-CN")))
-    :bind ("\C-ct" . google-translate-at-point))
+  (use-package google-translate :ensure t :init (lambda()(require 'google-translate-default-ui)
+  (custom-set-variables
+  '(google-translate-default-source-language "en")
+  '(google-translate-default-target-language "zh-CN")))
+  :bind ("\C-ct" . google-translate-at-point))
   (use-package validate :ensure t)
-  (use-package iedit-mode :init (lambda () (call-interactively 'iedit-restrict-function)) :bind ("\C-ce" . iedit-mode))
-  (use-package expand-region :init (setq expand-region-fast-keys-enabled nil) (setq er--show-expansion-message t)
+;   (use-package iedit-mode :ensure t :init (lambda () (call-interactively 'iedit-restrict-function)) :bind ("\C-ce" . iedit-mode))
+  (use-package expand-region :ensure t
+  :init (setq expand-region-fast-keys-enabled nil) (setq er--show-expansion-message t)
     :bind ( "C-=" . er/expand-region))
   (use-package winner :ensure t  :init (winner-mode 1))
-  ; (use-package mermaid-mode)
+  (use-package mermaid-mode :ensure t)
 
 #+END_SRC
 
@@ -200,6 +202,8 @@ Some useful commands
 
 #+BEGIN_SRC emacs-lisp
   (setq custom-safe-themes t)
+  (use-package monokai-theme :ensure t)
+  (use-package spaceline :ensure t)
   (load-theme 'monokai)
   (use-package spaceline-config) (spaceline-emacs-theme)
 
@@ -215,13 +219,17 @@ Some useful commands
 #+END_SRC
 
 * Git/Magit
+
 #+BEGIN_SRC emacs-lisp
-  (use-package magit :init (lambda ()
-                             (add-to-list 'magit-no-confirm 'stage-all-changes)
-                             (add-to-list 'magit-no-confirm 'safe-with-wip)
-                             (setq magit-push-always-verify nil)) :bind ( "C-x g" . magit-status)
-                             :commands (magit-status magit-log-all))
+  (use-package magit :ensure t :defer t
+	:init (lambda ()
+			(add-to-list 'magit-no-confirm 'stage-all-changes)
+			(add-to-list 'magit-no-confirm 'safe-with-wip)
+			(setq magit-push-always-verify nil)) :bind ( "C-x g" . magit-status)
+	:commands (magit-status magit-log-all))
+
 #+END_SRC
+
 * ORG Mode
 
 Jump to the major mode for the source block in org file: =C-c ''= for command =org-edit-special=
@@ -247,6 +255,8 @@ Remote Access with TRAMP in an org file can be typed as a link like below
 #+END_SRC
 
 #+BEGIN_SRC emacs-lisp
+  (use-package ob-http :ensure t)
+
   (when  (require 'org-bullets nil 'noerror)
     (setq org-bullets-face-name (quote org-bullet-face))
     (add-hook 'org-mode-hook (lambda ()
@@ -430,7 +440,7 @@ the codes
   (add-hook 'c-mode-common-hook 'hs-minor-mode)
   (add-hook 'c-mode-common-hook 'helm-gtags-mode)
 
-  (use-package cff)
+  (use-package cff :ensure t)
   (add-hook 'c-mode-common-hook
             (lambda() (global-set-key  (kbd "<f8>") 'cff-find-other-file)
               (add-hook 'before-save-hook 'clang-format-buffer nil t)))
@@ -489,7 +499,7 @@ the codes
 
   (use-package rtags
     :config
-    :defer 2
+    :defer t
     :config
     (add-hook 'c++-mode-hook
               (lambda ()
@@ -522,7 +532,7 @@ the codes
 * Company and completion
 
 #+BEGIN_SRC emacs-lisp
-(use-package company :defer t :diminish company-mode
+(use-package company :defer t :diminish company-mode :ensure t
     :preface
     ;; enable yasnippet everywhere
     (defvar company-mode/enable-yas t
@@ -613,14 +623,14 @@ Move forward across one balanced expression. (smartparens.el
 C-M-f/ C-M-b
 
 #+BEGIN_SRC emacs-lisp
-  (use-package smartparens
+  (use-package smartparens :defer 2 :ensure t
     :config
     (bind-key "C-M-f" 'sp-forward-sexp)
     (progn
       (require 'smartparens-config)
       (smartparens-global-mode t)))
 
-  (use-package evil
+  (use-package evil :defer t :ensure t
     :config
     (evil-mode 0)
     (dolist (mode '(ag-mode
@@ -644,12 +654,12 @@ C-M-f/ C-M-b
      ;;;
 
   ;; chome amotic editing
-  (use-package atomic-chrome
+  (use-package atomic-chrome :defer 3
     :ensure t
     :config (setq atomic-chrome-buffer-open-style 'window))
 
      ;;; Weather
-  (use-package wttrin
+  (use-package wttrin :defer 4
     :ensure t
     :commands (wttrin)
     :init
@@ -679,16 +689,16 @@ C-M-f/ C-M-b
        (define-key python-mode-map (kbd "M-'") 'python-nav-forward-sexp)))
 
   (use-package js2-mode
-    :mode ("\\.js\\'". js2-mode)
+    :mode ("\\.js\\'". js2-mode) :defer 2
     :init
     (add-hook 'js2-mode-hook #'js2-imenu-extras-mode)
     :config (progn (setq js2-strict-missing-semi-warning nil)))
 
   ;Disable jshint since we prefer eslint checking, explicitly select javascript-eslint
-  (use-package rjsx-mode :ensure t :config
+  (use-package rjsx-mode :ensure t :defer 2 :config
     (add-hook 'rjsx-mode-hook (lambda() (flycheck-select-checker 'javascript-eslint))))
 
-  (use-package prettier-js
+  (use-package prettier-js :ensure t :defer 2
     :init
     (add-hook 'js2-mode-hook 'prettier-js-mode))
 
@@ -696,8 +706,8 @@ C-M-f/ C-M-b
     (add-hook 'web-mode-hook 'yas-minor-mode))
 
   ; Ruby
-  (use-package rubocopfmt :ensure t)
-  (use-package inf-ruby :ensure t)
+  (use-package rubocopfmt :ensure t :defer 2)
+  (use-package inf-ruby :ensure t :defer 2)
 
   (add-hook 'ruby-mode-hook #'aggressive-indent-mode)
   (eval-after-load "ruby-mode"
