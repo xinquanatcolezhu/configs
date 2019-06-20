@@ -246,7 +246,11 @@ Remote Access with TRAMP in an org file can be typed as a link like below
 [[/1:/home/xinquan/.my.cnf]]
 #+END_SRC
 
+In Debian. imagemagick is insalled to provide the below the binary =convert-im6=
+
 #+BEGIN_SRC emacs-lisp
+  (use-package org-download :ensure t)
+
   (when  (require 'org-bullets nil 'noerror)
     (setq org-bullets-face-name (quote org-bullet-face))
     (add-hook 'org-mode-hook (lambda ()
